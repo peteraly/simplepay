@@ -1,0 +1,98 @@
+import rateLimit from 'express-rate-limit';
+import { AuthRequest } from '../types';
+import { RateLimitRequestHandler } from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+import { createClient } from 'redis';
+
+// Create Redis client
+const redisClient = createClient({
+  url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+
+redisClient.connect().catch(console.error);
+
+// Helper function to create a rate limiter with custom configuration
+const createLimiter = (
+  windowMs: number,
+  max: number,
+  message: string,
+  skipFailedRequests = false,
+  skipSuccessfulRequests = false
+): RateLimitRequestHandler => {
+  return rateLimit({
+    windowMs,
+    max,
+    message: { status: 'error', message },
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: new RedisStore({
+      sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+      prefix: 'rl:', // Redis key prefix for rate limiting
+    }),
+    skipFailedRequests, // Don't count failed requests (status >= 400)
+    skipSuccessfulRequests, // Don't count successful requests (status < 400)
+    keyGenerator: (req) => {
+      // Use both IP and user ID (if available) for rate limiting
+      const userId = (req as AuthRequest).user?.id;
+      return userId ? `${req.ip}-${userId}` : req.ip;
+    }
+  });
+};
+
+// Global rate limiter (100 requests per minute)
+export const globalLimiter = createLimiter(
+  60 * 1000, // 1 minute
+  100,
+  'Too many requests from this IP. Please try again later.'
+);
+
+// Auth endpoints rate limiter (5 requests per minute)
+export const authLimiter = createLimiter(
+  60 * 1000, // 1 minute
+  5,
+  'Too many authentication attempts. Please try again later.',
+  false, // Count all requests
+  true // Don't count successful authentications
+);
+
+// Business API rate limiter (30 requests per minute)
+export const businessLimiter = createLimiter(
+  60 * 1000, // 1 minute
+  30,
+  'Too many requests. Please try again later.',
+  true // Skip failed requests
+);
+
+// Customer API rate limiter (60 requests per minute)
+export const customerLimiter = createLimiter(
+  60 * 1000, // 1 minute
+  60,
+  'Too many requests. Please try again later.',
+  true // Skip failed requests
+);
+
+// SMS verification rate limiter (3 requests per 15 minutes)
+export const smsLimiter = createLimiter(
+  15 * 60 * 1000, // 15 minutes
+  3,
+  'Too many SMS verification attempts. Please try again later.',
+  false, // Count all requests
+  true // Don't count successful verifications
+);
+
+// QR code generation rate limiter (10 requests per minute)
+export const qrCodeLimiter = createLimiter(
+  60 * 1000, // 1 minute
+  10,
+  'Too many QR code generation requests. Please try again later.',
+  true // Skip failed requests
+);
+
+// Points redemption rate limiter (5 requests per minute)
+export const pointsRedemptionLimiter = createLimiter(
+  60 * 1000, // 1 minute
+  5,
+  'Too many points redemption attempts. Please try again later.',
+  false, // Count all requests
+  true // Don't count successful redemptions
+); 
