@@ -29,7 +29,8 @@ const CustomerSchema = new mongoose.Schema({
   },
   verificationCode: {
     type: String,
-    default: null
+    default: undefined,
+    sparse: true
   },
   verified: {
     type: Boolean,

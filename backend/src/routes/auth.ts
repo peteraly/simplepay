@@ -172,7 +172,7 @@ const verifyCustomer = async (req: Request, res: Response): Promise<void> => {
     
     // Update customer
     customer.verified = true;
-    customer.verificationCode = null;
+    customer.verificationCode = undefined;
     await customer.save();
     
     // Create JWT token

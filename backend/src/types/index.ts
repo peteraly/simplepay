@@ -40,7 +40,7 @@ export interface ICustomer extends Document {
   wallets: Array<{
     businessId: string;
     balance: number;
-    points: number;
+    pointsBalance: number;
   }>;
   createdAt: Date;
 }

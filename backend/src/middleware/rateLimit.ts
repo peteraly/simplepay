@@ -3,6 +3,7 @@ import { AuthRequest } from '../types';
 import { RateLimitRequestHandler } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createClient } from 'redis';
+import { Request, Response, NextFunction } from 'express';
 
 // Create Redis client
 const redisClient = createClient({
@@ -29,12 +30,17 @@ const createLimiter = (
       sendCommand: (...args: string[]) => redisClient.sendCommand(args),
       prefix: 'rl:', // Redis key prefix for rate limiting
     }),
-    skipFailedRequests, // Don't count failed requests (status >= 400)
-    skipSuccessfulRequests, // Don't count successful requests (status < 400)
-    keyGenerator: (req) => {
-      // Use both IP and user ID (if available) for rate limiting
-      const userId = (req as AuthRequest).user?.id;
-      return userId ? `${req.ip}-${userId}` : req.ip;
+    skipFailedRequests,
+    skipSuccessfulRequests,
+    // Simplified key generator that uses IP address and optional user ID
+    keyGenerator: (request) => {
+      try {
+        const ip = request.ip || request.socket.remoteAddress || 'unknown';
+        const userId = (request as any).user?.id;
+        return userId ? `${ip}-${userId}` : ip;
+      } catch {
+        return 'unknown';
+      }
     }
   });
 };

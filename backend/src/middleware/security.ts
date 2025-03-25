@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
-import xss from 'xss-clean';
+// Import xss-clean using require to avoid TypeScript errors
+const xss = require('xss-clean');
 
 // Custom middleware to add security headers
 export const securityHeaders: RequestHandler = (req, res, next) => {

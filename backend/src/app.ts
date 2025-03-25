@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import cors from 'cors';
 import { connectDatabase } from './config/database';
 import { connectRedis } from './config/redis';
@@ -38,22 +38,22 @@ app.use(cors({
 
 // Request parsing and sanitization
 app.use(express.json({ limit: '10kb' }));
-app.use(securityConfig.mongoSanitize);
-app.use(securityConfig.xss);
+app.use(securityConfig.mongoSanitize as unknown as RequestHandler);
+app.use(securityConfig.xss as unknown as RequestHandler);
 app.use(preventParameterPollution);
 app.use(validateContentType);
 
-// Apply global rate limiter to all routes
-app.use(globalLimiter);
+// Apply specific rate limiters to routes (most specific first)
+app.use('/api/auth/customer/verify', smsLimiter as unknown as RequestHandler);
+app.use('/api/auth/business', authLimiter as unknown as RequestHandler);
+app.use('/api/auth/customer', authLimiter as unknown as RequestHandler);
+app.use('/api/business/qr-code', qrCodeLimiter as unknown as RequestHandler);
+app.use('/api/business', businessLimiter as unknown as RequestHandler);
+app.use('/api/transactions/points/redeem', pointsRedemptionLimiter as unknown as RequestHandler);
+app.use('/api/transactions', customerLimiter as unknown as RequestHandler);
 
-// Apply specific rate limiters to routes
-app.use('/api/auth/business', authLimiter);
-app.use('/api/auth/customer', authLimiter);
-app.use('/api/auth/customer/verify', smsLimiter);
-app.use('/api/business', businessLimiter);
-app.use('/api/business/qr-code', qrCodeLimiter);
-app.use('/api/transactions/points/redeem', pointsRedemptionLimiter);
-app.use('/api/transactions', customerLimiter);
+// Apply global limiter to all other routes that haven't been rate-limited yet
+app.use(globalLimiter as unknown as RequestHandler);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -73,7 +73,7 @@ const startServer = async () => {
     await connectRedis();
     
     // Start server
-    const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 8080;
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
