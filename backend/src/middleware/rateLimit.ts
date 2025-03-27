@@ -55,7 +55,7 @@ export const globalLimiter = createLimiter(
 // Auth endpoints rate limiter (5 requests per minute)
 export const authLimiter = createLimiter(
   60 * 1000, // 1 minute
-  5,
+  20,
   'Too many authentication attempts. Please try again later.',
   false, // Count all requests
   true // Don't count successful authentications
@@ -101,4 +101,19 @@ export const pointsRedemptionLimiter = createLimiter(
   'Too many points redemption attempts. Please try again later.',
   false, // Count all requests
   true // Don't count successful redemptions
-); 
+);
+
+// Instead of multiple specific limiters, consider consolidating to:
+export const rateLimits = {
+  public: createLimiter(
+    60 * 1000, // 1 minute
+    100,
+    'Too many requests. Please try again later.'
+  ),
+  
+  authenticated: createLimiter(
+    60 * 1000, // 1 minute
+    300,
+    'Too many requests. Please try again later.'
+  )
+}; 

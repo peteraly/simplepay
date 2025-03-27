@@ -26,20 +26,6 @@ const BusinessSchema = new mongoose.Schema({
       type: Number,
       default: 10,
       min: [1, 'Points per dollar must be at least 1']
-    },
-    primaryColor: {
-      type: String,
-      default: "#4B2D83",
-      match: [/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Please enter a valid hex color']
-    },
-    logo: {
-      type: String,
-      validate: {
-        validator: function(v: string) {
-          return !v || /^https?:\/\/.+/.test(v);
-        },
-        message: 'Logo must be a valid URL'
-      }
     }
   },
   qrCodeSeed: {

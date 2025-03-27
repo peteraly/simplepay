@@ -31,11 +31,7 @@ export class ValidationError extends AppError {
   }
 }
 
-export class AuthenticationError extends AppError {
-  constructor(message: string = 'Authentication failed') {
-    super(message, 401);
-  }
-}
+export class AuthenticationError extends AppError {}
 
 export class AuthorizationError extends AppError {
   constructor(message: string = 'Not authorized to access this resource') {
@@ -45,24 +41,25 @@ export class AuthorizationError extends AppError {
 
 // Error handling middleware
 export const errorHandler = (
-  err: Error,
+  err: Error | AppError | ValidationError,
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
   console.error(err);
 
-  if (err instanceof AppError) {
-    // Handle operational errors
-    if (err instanceof ValidationError) {
-      res.status(err.statusCode).json({
-        status: err.status,
-        message: err.message,
-        errors: err.errors
-      });
-      return;
-    }
+  // Handle ValidationError
+  if (err instanceof ValidationError) {
+    res.status(400).json({
+      status: 'fail',
+      message: err.message,
+      errors: err.errors
+    });
+    return;
+  }
 
+  // Handle AppError
+  if (err instanceof AppError) {
     res.status(err.statusCode).json({
       status: err.status,
       message: err.message

@@ -71,17 +71,14 @@ export const securityConfig = {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'", 'https://api.simplepay.com'], // Add your API domain
-        fontSrc: ["'self'", 'https:', 'data:'],
+        imgSrc: ["'self'", "data:", "https:", "http://localhost:*"], // Add localhost
+        connectSrc: ["'self'", "http://localhost:*"], // Add localhost
+        fontSrc: ["'self'", "https:", "data:"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
         frameSrc: ["'none'"],
         formAction: ["'self'"],
-        upgradeInsecureRequests: [],
         baseUri: ["'self'"],
-        // Add require-trusted-types-for directive
-        requireTrustedTypesFor: ["'script'"]
       }
     },
     crossOriginEmbedderPolicy: { policy: 'require-corp' },
