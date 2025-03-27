@@ -28,19 +28,13 @@ const createLimiter = (
     legacyHeaders: false,
     store: new RedisStore({
       sendCommand: (...args: string[]) => redisClient.sendCommand(args),
-      prefix: 'rl:', // Redis key prefix for rate limiting
+      prefix: 'rl:',
     }),
     skipFailedRequests,
     skipSuccessfulRequests,
-    // Simplified key generator that uses IP address and optional user ID
     keyGenerator: (request) => {
-      try {
-        const ip = request.ip || request.socket.remoteAddress || 'unknown';
-        const userId = (request as any).user?.id;
-        return userId ? `${ip}-${userId}` : ip;
-      } catch {
-        return 'unknown';
-      }
+      const ip = request.ip || request.socket.remoteAddress || 'unknown';
+      return `${ip}:${request.method}:${request.path}`;
     }
   });
 };

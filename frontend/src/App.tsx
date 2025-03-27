@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './App.css';
+import BusinessDashboard from './components/BusinessDashboard';
 
 function App() {
   const [formData, setFormData] = useState({
@@ -7,9 +8,15 @@ function App() {
     ownerEmail: '',
     password: ''
   });
+  const [message, setMessage] = useState('');
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [authToken, setAuthToken] = useState('');
+  const [businessId, setBusinessId] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage('Registering...');
+    
     try {
       const response = await fetch('http://localhost:3002/api/auth/business/register', {
         method: 'POST',
@@ -18,12 +25,26 @@ function App() {
         },
         body: JSON.stringify(formData)
       });
+
       const data = await response.json();
-      console.log('Response:', data);
+      
+      if (response.ok) {
+        setMessage('Registration successful!');
+        setAuthToken(data.token);
+        setBusinessId(data.businessId);
+        setIsRegistered(true);
+      } else {
+        setMessage(`Error: ${data.message}`);
+      }
     } catch (error) {
+      setMessage('Error connecting to server');
       console.error('Error:', error);
     }
   };
+
+  if (isRegistered) {
+    return <BusinessDashboard token={authToken} businessId={businessId} />;
+  }
 
   return (
     <div className="App">
@@ -31,6 +52,9 @@ function App() {
         <h1>SimplePay</h1>
         <div className="form-container">
           <h2>Business Registration</h2>
+          {message && <div className={message.includes('Error') ? 'error-message' : 'success-message'}>
+            {message}
+          </div>}
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Business Name:</label>
