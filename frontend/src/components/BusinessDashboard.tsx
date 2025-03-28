@@ -1,132 +1,85 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import './BusinessDashboard.css';
 
-interface DashboardProps {
-  token: string;
-  businessId: string;
+interface BusinessData {
+  id: string;
+  name: string;
+  email: string;
+  balance: number;
+  createdAt: string;
 }
 
-interface Transaction {
-  amount: number;
-  timestamp: string;
-  type: string;
-}
-
-const API_URL = 'http://localhost:3000';
-
-function BusinessDashboard({ token, businessId }: DashboardProps) {
-  const [qrCode, setQrCode] = useState<string>('');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [settings, setSettings] = useState({
-    pointsPerDollar: 10,
-    primaryColor: '#4B2D83'
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Calculate total sales safely
-  const calculateTotalSales = () => {
-    if (!transactions.length) return 0;
-    return transactions
-      .filter(t => t.type === 'payment')
-      .reduce((sum, t) => sum + t.amount, 0);
-  };
+export const BusinessDashboard: React.FC = () => {
+  const [businessData, setBusinessData] = useState<BusinessData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
+    const fetchBusinessData = async () => {
       try {
-        // Fetch QR Code
-        const qrResponse = await fetch(`${API_URL}/api/business/qr-code`, {
-          headers: {
-            'x-auth-token': token
-          }
-        });
-        const qrData = await qrResponse.json();
-        setQrCode(qrData.qrCode);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
 
-        // Fetch transactions
-        const transResponse = await fetch(`${API_URL}/api/transactions/history`, {
+        const response = await fetch('http://localhost:3000/api/business/profile', {
           headers: {
-            'x-auth-token': token
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
-        const transData = await transResponse.json();
-        setTransactions(transData.transactions || []);
 
-        // Fetch settings
-        const settingsResponse = await fetch(`${API_URL}/api/business/settings`, {
-          headers: {
-            'x-auth-token': token
-          }
-        });
-        const settingsData = await settingsResponse.json();
-        setSettings(settingsData);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch business data');
+        }
+
+        const data = await response.json();
+        setBusinessData(data);
+        setError(null);
+      } catch (err) {
+        console.error('Dashboard error:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, [token]);
+    fetchBusinessData();
+  }, []);
 
-  if (isLoading) {
-    return (
-      <div className="dashboard">
-        <div className="loading">Loading dashboard...</div>
-      </div>
-    );
-  }
+  if (loading) return <div>Loading...</div>;
+  if (error) return (
+    <div className="error-container">
+      <h2>Error</h2>
+      <p>{error}</p>
+      <button onClick={() => window.location.reload()}>Try Again</button>
+    </div>
+  );
+  if (!businessData) return <div>No business data found</div>;
 
   return (
     <div className="dashboard">
-      <h2>Business Dashboard</h2>
+      <h1>Business Dashboard</h1>
+      <div className="business-info">
+        <h2>Welcome, {businessData.name}!</h2>
+        <p>Email: {businessData.email}</p>
+        <p>Balance: ${businessData.balance.toFixed(2)}</p>
+      </div>
       
-      <div className="dashboard-section">
-        <h3>Payment QR Code</h3>
-        {qrCode ? (
-          <img src={qrCode} alt="Payment QR Code" />
-        ) : (
-          <p>QR Code not available</p>
-        )}
-      </div>
-
-      <div className="dashboard-section">
-        <h3>Quick Stats</h3>
-        <div className="stats-grid">
-          <div className="stat-box">
-            <h4>Today's Sales</h4>
-            <p>${calculateTotalSales().toFixed(2)}</p>
-          </div>
-          <div className="stat-box">
-            <h4>Points Rate</h4>
-            <p>{settings.pointsPerDollar} per $1</p>
-          </div>
-          <div className="stat-box">
-            <h4>Transactions</h4>
-            <p>{transactions.length}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="dashboard-section">
-        <h3>Recent Transactions</h3>
-        <div className="transactions-list">
-          {transactions.length > 0 ? (
-            transactions.map((t, i) => (
-              <div key={i} className="transaction-item">
-                <span>{new Date(t.timestamp).toLocaleDateString()}</span>
-                <span>${t.amount.toFixed(2)}</span>
-                <span>{t.type}</span>
-              </div>
-            ))
-          ) : (
-            <p>No transactions yet</p>
-          )}
-        </div>
+      <div className="dashboard-actions">
+        <button onClick={() => alert('Feature coming soon!')}>
+          View QR Code
+        </button>
+        <button onClick={() => alert('Feature coming soon!')}>
+          View Transactions
+        </button>
+        <button onClick={() => alert('Feature coming soon!')}>
+          Settings
+        </button>
       </div>
     </div>
   );
-}
+};
 
 export default BusinessDashboard; 

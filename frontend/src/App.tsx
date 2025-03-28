@@ -1,92 +1,115 @@
 import React, { useState } from 'react';
-import './App.css';
 import BusinessDashboard from './components/BusinessDashboard';
+import './App.css';
 
 function App() {
-  const [formData, setFormData] = useState({
-    businessName: '',
-    ownerEmail: '',
-    password: ''
-  });
+  const [businessName, setBusinessName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const [isRegistered, setIsRegistered] = useState(false);
-  const [authToken, setAuthToken] = useState('');
-  const [businessId, setBusinessId] = useState('');
+  const [isError, setIsError] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('Registering...');
     
     try {
-      const response = await fetch('http://localhost:3002/api/auth/business/register', {
+      console.log('Attempting registration...');
+      const response = await fetch('http://localhost:3000/api/auth/business/register', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: businessName,
+          email,
+          password,
+        }),
       });
 
-      const data = await response.json();
+      console.log('Response received:', response.status);
       
-      if (response.ok) {
-        setMessage('Registration successful!');
-        setAuthToken(data.token);
-        setBusinessId(data.businessId);
-        setIsRegistered(true);
-      } else {
-        setMessage(`Error: ${data.message}`);
+      // Try to get the response body as text first
+      const rawResponse = await response.text();
+      console.log('Raw response:', rawResponse);
+
+      // Parse the response if it's JSON
+      let data;
+      try {
+        data = JSON.parse(rawResponse);
+      } catch (e) {
+        console.error('Failed to parse response:', e);
+        throw new Error('Invalid response from server');
       }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      // Store the token
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('businessId', data.businessId);
+
+      setMessage('Registration successful! Redirecting to dashboard...');
+      setIsError(false);
+
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        setShowDashboard(true);
+      }, 1500);
+
     } catch (error) {
-      setMessage('Error connecting to server');
-      console.error('Error:', error);
+      console.error('Registration error:', error);
+      setMessage(error instanceof Error ? error.message : 'Registration failed');
+      setIsError(true);
     }
   };
 
-  if (isRegistered) {
-    return <BusinessDashboard token={authToken} businessId={businessId} />;
-  }
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>SimplePay</h1>
-        <div className="form-container">
+    <div className="container">
+      {!showDashboard ? (
+        <div className="registration-form">
+          <h1>SimplePay</h1>
           <h2>Business Registration</h2>
-          {message && <div className={message.includes('Error') ? 'error-message' : 'success-message'}>
-            {message}
-          </div>}
+          {message && (
+            <div className={`message ${isError ? 'error' : 'success'}`}>
+              {message}
+            </div>
+          )}
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
+            <div>
               <label>Business Name:</label>
               <input
                 type="text"
-                value={formData.businessName}
-                onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
                 required
               />
             </div>
-            <div className="form-group">
+            <div>
               <label>Email:</label>
               <input
                 type="email"
-                value={formData.ownerEmail}
-                onChange={(e) => setFormData({...formData, ownerEmail: e.target.value})}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
-            <div className="form-group">
+            <div>
               <label>Password:</label>
               <input
                 type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
             <button type="submit">Register Business</button>
           </form>
         </div>
-      </header>
+      ) : (
+        <BusinessDashboard />
+      )}
     </div>
   );
 }

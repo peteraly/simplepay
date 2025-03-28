@@ -1,14 +1,14 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/auth';
 import { prisma } from '../db';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
 // Get business profile
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'User not authenticated' });
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const business = await prisma.business.findUnique({
@@ -29,10 +29,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     res.json(business);
   } catch (error) {
     console.error('Error fetching business profile:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch business profile',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    res.status(500).json({ error: 'Failed to fetch business profile' });
   }
 });
 

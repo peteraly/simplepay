@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import { IBusiness } from '../types';
+import { prisma } from '../db';
 
 const BusinessSchema = new mongoose.Schema({
   businessName: {
@@ -63,4 +64,24 @@ BusinessSchema.methods.comparePassword = async function(candidatePassword: strin
   }
 };
 
-export default mongoose.model<IBusiness>('Business', BusinessSchema); 
+export default mongoose.model<IBusiness>('Business', BusinessSchema);
+
+export const Business = {
+  async findOne({ ownerEmail }: { ownerEmail: string }) {
+    return prisma.business.findUnique({
+      where: { email: ownerEmail }
+    });
+  },
+
+  async create(data: { businessName: string; ownerEmail: string; password: string; qrCodeSeed: string }) {
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    return prisma.business.create({
+      data: {
+        name: data.businessName,
+        email: data.ownerEmail,
+        password: hashedPassword,
+        qrCodeSeed: data.qrCodeSeed
+      }
+    });
+  }
+}; 
